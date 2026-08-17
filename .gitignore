@@ -1,4 +1,16 @@
-.DS_Store
+# Local class materials — never pushed
+class_materials/
+
+# Secrets
 .env
+
+# Python
 __pycache__/
+*.pyc
+*.pyo
+
+# Jupyter
 .ipynb_checkpoints/
+
+# OS
+.DS_Store
