@@ -69,7 +69,7 @@ flag), plus a chart of the weights over the past year.
 Goal -> Stage -> Deliverable
 
 - Agree what the report is for and what triggers action -> Problem Framing & Scoping
-  (Stage 01) -> this README and the memo in `docs/`
+  (Stage 01) -> this README and `stakeholder-memo.md` in this folder
 - Reproducible environment -> Tooling Setup (Stage 02) -> `requirements.txt`,
   `.env.example`
 - Reusable weight and drift calculations -> Python Fundamentals (Stage 03) ->
@@ -81,13 +81,16 @@ Goal -> Stage -> Deliverable
 
 ## Repo Plan
 
-```
-data/raw/         price pulls, never edited by hand
-data/processed/   computed weights and drift
-src/              helper functions
-notebooks/        one notebook per stage
-docs/             stakeholder memo
-```
+homework/              one folder per stage (homework00, homework01, ...)
+project/               the drift monitor, scaffolded in Stage 02
+├── data/raw/          price pulls, never edited by hand
+├── data/processed/    computed weights and drift
+├── src/               helper functions
+├── notebooks/         project_pipeline.ipynb
+├── reports/images/    charts saved by the code
+├── model/             saved model objects
+└── docs/              stakeholder memo
+class_materials/       handouts; gitignored, never pushed
 
 Commit at the end of each working session, push before each class, re-freeze
 `requirements.txt` whenever a package is added. `.env` is never committed.
