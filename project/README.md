@@ -1,6 +1,6 @@
 # Portfolio Drift Monitor
 
-**Stage:** Problem Framing & Scoping (Stage 01)
+**Stage:** Data Preprocessing (Stage 06)
 
 ## Problem Statement
 
