@@ -27,6 +27,14 @@ the output has to be a file that is already there.
 The report needs to be ready before the morning client calls. Producing it overnight is
 fine; this is not a trading tool.
 
+**Who operates it, and who consumes it.** Nobody operates it by hand. The pipeline
+runs unattended overnight and writes the CSV and chart to a shared folder before
+09:00. The *consumer* is Dana, the client service associate, who reads the flag
+column as one line on her existing morning checklist. The *decision owner* is the
+principal, who consumes only the exceptions Dana escalates. This split is why the
+deliverable is a file rather than a script or a dashboard: the person who reads the
+output is explicitly not the person who could run code to produce it.
+
 ## Useful Answer & Decision
 
 **Descriptive.** The question is where the weights are now, not where they will be next
