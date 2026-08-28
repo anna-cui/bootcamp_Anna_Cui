@@ -5,6 +5,8 @@ writes to disk or mutates its argument. That makes them safe to call from any
 notebook and testable without fixtures.
 """
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 
@@ -66,3 +68,46 @@ def flag_drift(drift, amber=AMBER_PP, red=RED_PP):
         raise ValueError("require 0 < amber <= red")
     mag = np.abs(np.asarray(drift, float))
     return np.where(mag > red, "red", np.where(mag >= amber, "amber", "green"))
+
+
+# --- Stage 05: storage helpers -------------------------------------------
+
+def detect_format(path):
+    """Return 'csv' or 'parquet' based on the file suffix."""
+    s = str(path).lower()
+    if s.endswith(".csv"):
+        return "csv"
+    if s.endswith((".parquet", ".pq", ".parq")):
+        return "parquet"
+    raise ValueError(f"Unsupported format: {path}")
+
+
+def write_df(df, path):
+    """Write `df` to `path`, routing on the suffix. Refuses an empty frame."""
+    if df.empty:
+        raise ValueError("refusing to write an empty DataFrame")
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    if detect_format(p) == "csv":
+        df.to_csv(p, index=False)
+    else:
+        try:
+            df.to_parquet(p)
+        except ImportError as exc:
+            raise RuntimeError("Parquet engine not available. "
+                               "Install pyarrow or fastparquet.") from exc
+    return p
+
+
+def read_df(path):
+    """Read `path`, routing on the suffix. Parses any column ending in 'date'."""
+    p = Path(path)
+    if detect_format(p) == "csv":
+        header = pd.read_csv(p, nrows=0).columns
+        date_cols = [col for col in header if str(col).lower().endswith("date")]
+        return pd.read_csv(p, parse_dates=date_cols or None)
+    try:
+        return pd.read_parquet(p)
+    except ImportError as exc:
+        raise RuntimeError("Parquet engine not available. "
+                           "Install pyarrow or fastparquet.") from exc

@@ -94,3 +94,29 @@ class_materials/       handouts; gitignored, never pushed
 
 Commit at the end of each working session, push before each class, re-freeze
 `requirements.txt` whenever a package is added. `.env` is never committed.
+
+## Data Storage
+
+| Folder | Holds | Rule |
+|---|---|---|
+| `data/raw/` | Price pulls exactly as acquired from yfinance | **Immutable.** Never edited by hand; a re-pull gets a new timestamped filename |
+| `data/processed/` | The daily weights-and-drift table, derived by code | Deletable and re-creatable by re-running `notebooks/project_pipeline.ipynb` |
+
+**Formats.** Raw pulls are **CSV** — human-readable, diffable in git, and small.
+The processed table is **Parquet**, because it carries a datetime column and a
+categorical flag that CSV would hand back as text.
+
+**Paths come from `.env`**, never hardcoded:
+
+    DATA_DIR_RAW=data/raw
+    DATA_DIR_PROCESSED=data/processed
+
+Read in Python via `os.getenv(...)` with a sensible default. `.env` is never
+committed; `.env.example` is the committed template.
+
+**Reading and writing** goes through `write_df` / `read_df` in `src/utils.py`,
+which route on the file suffix, create missing directories, refuse to write an
+empty frame, and parse any column whose name ends in `date`.
+
+**Round trips are verified, not assumed.** After every save the pipeline
+reloads the file and asserts shape, dtypes and values match the original.
