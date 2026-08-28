@@ -120,3 +120,54 @@ empty frame, and parse any column whose name ends in `date`.
 
 **Round trips are verified, not assumed.** After every save the pipeline
 reloads the file and asserts shape, dtypes and values match the original.
+
+## Data Cleaning
+
+Cleaning sits on the boundary between `data/raw/` and `data/processed/`: after the
+vendor pull is written to disk, before any weight is computed. Nothing downstream
+touches the raw frame. The functions live in `src/cleaning.py` and every one of them
+copies its input, returns a new frame, and reports what it changed.
+
+**The rules here are deliberately not the homework's rules.**
+`homework/homework06/src/cleaning.py` fills numeric blanks with the column median,
+which is right for a cross-section of unrelated records. A price series is not a
+cross-section. The median of a year of VTI closes is not a plausible price for any
+particular Tuesday, and using it would invent a move the market never made. So a
+missing close is carried forward from the last observation instead.
+
+| Step | Rule | Why this one |
+|---|---|---|
+| 1 | Coerce `date` to datetime, `close` to float | CSV is text and forgets dtypes (Stage 05). Sorting and filling both depend on the real types |
+| 2 | Sort by `(date, ticker)` | Forward fill walks row order; on an unsorted frame it propagates prices backwards through time |
+| 3 | Drop duplicate `(date, ticker)`, keep last | Two closes for one fund on one day is a contradiction, not extra data. Keeping the later row assumes a resend is a correction |
+| 4 | Non-positive closes become missing | A close of zero is a broken record, not a cheap fund |
+| 5 | Forward fill within fund, limit 3 days | The last traded price is the standard stand-in for an unobserved close. The limit matters: filling further draws a flat line, which asserts zero volatility rather than admitting a gap |
+| 6 | Drop any date missing a fund | Last, because step 5 may have repaired it |
+
+**Step 6 is the one that matters, and it has no configurable alternative.** A weight is
+a share of a total. If BND is absent on a Tuesday, weights built from VTI and VXUS alone
+still sum to 1, over the wrong basket. Dropping a 10% sleeve divides the rest by 0.9,
+which lifts a 60% target to 66.7% on its own: the pipeline reports VTI at about 67%, a
+drift near 6.7pp, and fires a **red** flag on a day the portfolio was within half a point
+of target. The number is not missing, it is wrong, and it looks entirely reasonable on
+the report Dana opens.
+
+That finding compounds the one recorded in Stage 05. Over a year of real closes the 5pp
+red threshold never fires at all, so the only red flag this monitor would have produced
+in that year is a data artifact. An alert that fires only on bad data trains its reader
+to ignore it, which is the failure mode Stage 07's sensitivity analysis has to address.
+
+**What the cleaning costs.** On the current pull, nothing: every counter in the log is
+zero and the cleaned frame is row-for-row the raw pull. That is the expected result for
+one vendor on three highly liquid funds, and it is also an uninformative test, so the
+pipeline breaks a copy on purpose and checks the same code repairs it. On that damaged
+copy the cost is four dropped days (about 1.6% of the window) and two forward-filled
+closes carrying roughly 50 to 110 basis points of error each. The dropped days are the
+expensive half and the defensible one. The forward fills are the cheap half and the one
+to watch: they are estimates carrying the same dtype as observations, and once the log
+scrolls past, nothing downstream can tell them apart. A `close_was_filled` indicator is
+the obvious Stage 09 feature and is not built yet.
+
+**Output.** `data/processed/prices_clean_<YYYYMMDD-HHMM>.parquet`, so Stage 07 can
+reproduce Stage 06 without re-downloading. Written through `write_df` and verified with
+a reload, same as every other artifact in this project.
