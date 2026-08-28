@@ -1,0 +1,25 @@
+[
+  {
+    "date": "2024-01-01",
+    "ticker": "VTI",
+    "price": 150.0,
+    "notes": {
+      "summary": "Stable",
+      "details": [
+        "No major events",
+        "Market steady"
+      ]
+    }
+  },
+  {
+    "date": "2024-01-02",
+    "ticker": "VTI",
+    "price": 151.2,
+    "notes": {
+      "summary": "Slight increase",
+      "details": [
+        "Broad rally"
+      ]
+    }
+  }
+]

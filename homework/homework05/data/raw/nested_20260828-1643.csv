@@ -1,0 +1,3 @@
+date,ticker,price,notes
+2024-01-01,VTI,150.0,"{'summary': 'Stable', 'details': ['No major events', 'Market steady']}"
+2024-01-02,VTI,151.2,"{'summary': 'Slight increase', 'details': ['Broad rally']}"
