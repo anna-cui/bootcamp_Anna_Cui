@@ -1,0 +1,4 @@
+model,r2,rmse,mae,n
+linear regression (11 params),0.6917,0.2333,0.1915,126
+persistence (today's abs_drift),0.5024,0.2964,0.2372,126
+train mean (a flat line),-0.5331,0.5203,0.4037,126
