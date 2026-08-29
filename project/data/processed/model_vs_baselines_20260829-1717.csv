@@ -1,0 +1,4 @@
+predictor,r2,rmse,mae,n
+linear regression,0.6977,0.2307,0.1879,126
+persistence (today),0.5071,0.2946,0.2336,126
+train mean (flat line),-0.5221,0.5178,0.403,126
