@@ -165,9 +165,56 @@ copy the cost is four dropped days (about 1.6% of the window) and two forward-fi
 closes carrying roughly 50 to 110 basis points of error each. The dropped days are the
 expensive half and the defensible one. The forward fills are the cheap half and the one
 to watch: they are estimates carrying the same dtype as observations, and once the log
-scrolls past, nothing downstream can tell them apart. A `close_was_filled` indicator is
-the obvious Stage 09 feature and is not built yet.
+scrolls past, nothing downstream can tell them apart. A `close_was_filled` indicator,
+defined in the feature table below, was built in Stage 09 and closes that gap.
 
 **Output.** `data/processed/prices_clean_<YYYYMMDD-HHMM>.parquet`, so Stage 07 can
 reproduce Stage 06 without re-downloading. Written through `write_df` and verified with
 a reload, same as every other artifact in this project.
+
+## Feature Definitions
+
+Built in Stage 09 by `src/features.py` and assembled by
+`fe.build_feature_matrix(prices_clean, TARGET_WEIGHTS, prices_raw=raw_reloaded)`. The
+reasoning and the evidence are in `docs/features.md`; this table is the definitions.
+
+**Target.** `y_absdrift_fwd_21` - absolute drift in percentage points, 21 trading days
+ahead. The horizon is a decision, not a default: today's absolute drift predicts
+tomorrow's at 0.979, so a one-day target would be answered correctly by "the same as
+today" and would teach a model nothing. At 21 days that falls to 0.689, and a month is
+enough warning for the principal to act on.
+
+| Feature | Definition | Why it exists |
+|---|---|---|
+| `abs_drift` | distance from target, in percentage points, ignoring direction | The quantity the amber and red thresholds are actually compared against |
+| `abs_drift_rel` | `abs_drift` as a percent of that fund's target weight | Stage 07 left the pp-versus-relative unit question open. Within a fund this is the same number rescaled; across funds it is the only one of the two that compares |
+| `drift_chg_1` | one-day change in drift | Stage 08 said build the rate, not the level. Kept as a recorded negative result: it correlates with the target at -0.010 |
+| `drift_chg_5` | five-day change in drift | The same idea at a weekly step |
+| `drift_slope_21` | OLS slope of drift over the last 21 trading days, in pp per year | Stage 08 fitted one line to the whole year and got -0.93 for BND. This is that line refitted to a moving window, so a model can see the trend steepening |
+| `ret_1` | daily simple return, per fund | The raw input the drift is built from |
+| `vol_21` | 21-day realized volatility, annualized, percent | Stage 08's volatility clustering. Correlates +0.57 with the target for BND and -0.23 for VTI, which is the clearest argument for keeping fund identity in the model |
+| `eq_bond_spread_21` | target-weighted equity return minus bond return, 21-day trailing, annualized | The mechanism. Stage 08 traced the drift to this spread; every other feature describes the drift rather than its cause |
+| `ticker_VTI`, `ticker_VXUS`, `ticker_BND` | one-hot fund indicators | See below |
+| `ticker_target` | fund encoded by its policy weight (0.60 / 0.30 / 0.10) | A genuine ordinal carrying domain knowledge, unlike label encoding. Built as a candidate; constant within a fund, so it only helps a pooled model |
+| `close_was_filled` | 1 where the close was forward-filled rather than observed | Closes the Stage 06 item above. Zero on a clean pull, verified to fire on a damaged copy. Kept in the pipeline, excluded from the model while it is constant |
+
+**Why the fund identifier is one-hot encoded.** Stage 08's categorical profile is
+251 / 251 / 251, exactly, because `drop_incomplete_days` keeps only dates with a close for
+every fund. That single number decides the choice. Frequency encoding maps all three funds
+to 0.3333, producing a column with one distinct value and zero information. Label encoding
+assigns integers alphabetically (BND 0, VTI 1, VXUS 2), which tells a linear model that
+VXUS is twice VTI; the resulting column correlates with the target at 0.042, against
+-0.360, +0.217 and +0.143 for the three one-hot columns. One-hot invents no ordering and
+costs three columns.
+
+**Not built.** `drift_slope_63` was built and dropped: 24.70% missing, which fails Stage
+08's own 20% gate, in exchange for a pooled correlation of -0.001. Target encoding is not
+used, because computing a category mean outside the training split leaks the answer.
+
+**Nothing is scaled.** Standardising here would fit the scaler on rows Stage 10b holds
+out as a test set. Scaling belongs inside the split.
+
+**Every window is causal, and it is tested.** `assert_no_lookahead` rebuilds the features
+on a truncated history and compares the overlap. The pipeline runs it on all 11 modelling
+features, then runs it against a deliberately leaky build to confirm the test itself
+works.
