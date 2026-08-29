@@ -209,6 +209,16 @@ Scaling belongs inside the split.
 
 ## 9. Handoff to Stage 10
 
+> **Amended after Stage 10a.** The expectation recorded below was measured and found
+> backwards. The chronological split scored **better** than a random one on test data
+> (R2 0.692 against 0.378), and better than its own training score of 0.458. The
+> reasoning assumed "out of distribution" implies "harder"; in fact the final 20% of the
+> window is where the trend is most established, so the target there is narrower and more
+> predictable (test range 0.305 to 1.769 against a train range of 0.002 to 2.233). A
+> random split is still not safe here, and its 0.378 is the evidence. See
+> `docs/modeling.md` section 4.
+
+
 Use `data/processed/features_model_ready_<stamp>.parquet`: 11 features, one target,
 complete rows only, 627 of 753 fund-days after windows and the forward target.
 
