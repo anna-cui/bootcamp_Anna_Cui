@@ -4,8 +4,15 @@
 This file holds the conclusions, so they can be read without running anything.
 
 Window: 2025-08-29 to 2026-08-28. 251 trading days, three funds, 753 fund-days.
-Source: `data/processed/prices_clean_*.parquet`, produced by Stage 06 from a yfinance
-pull.
+Source: `data/processed/prices_clean_20260828-1756.parquet`, produced by Stage 06 from a
+yfinance pull.
+
+The pipeline requests a rolling `1y` window, so every re-run shifts the window forward by
+a day or two and moves these figures in the third decimal. The 2026-08-29 re-run gave BND
+a rate of -1.686pp/yr against the -1.688 quoted below, and a correlation with time of
+-0.928 against -0.929. Every conclusion here is stated at a precision that survives that,
+but a re-run months from now needs its numbers checked against this file rather than
+assumed.
 
 ---
 
