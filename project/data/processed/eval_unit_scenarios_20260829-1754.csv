@@ -1,0 +1,5 @@
+,model_mae,persistence_mae,beats_persistence_pct
+pp / 11 features,0.1915,0.2372,19.2357
+pp / 5 features,0.1759,0.2372,25.8208
+relative / 11 features,0.961,1.0548,8.8938
+relative / 5 features,0.785,1.0548,25.5787
