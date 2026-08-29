@@ -1,0 +1,4 @@
+fund,drift_rate_pp_per_year,corr_with_time,r_squared,years_to_amber,years_to_red
+VTI,0.343,0.175,0.031,8.734,14.556
+VXUS,1.345,0.643,0.413,2.231,3.718
+BND,-1.688,-0.929,0.863,1.777,2.961
