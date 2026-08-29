@@ -1,0 +1,7 @@
+predictor,mae,rmse,r2,n
+"pipeline, lag_1 only",0.239,0.2857,0.5376,126
+"pipeline, lag_1 + zscore_21",0.2287,0.2732,0.5774,126
+"pipeline, all 11 features",0.3226,0.4087,0.054,126
+persistence (no model),0.2392,0.2947,0.5081,126
+train mean (flat line),0.4024,0.5187,-0.5235,126
+SIGNED-space features (wrong space),0.5112,0.7405,-2.105,126
