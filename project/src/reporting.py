@@ -53,6 +53,24 @@ from .utils import AMBER_PP, RED_PP
 # should not change between artifacts.
 DISPLAY_ORDER = ["VTI", "VXUS", "BND"]
 
+# One colour per fund, defined once. The same argument as `traffic_light`: a
+# reader who learns the mapping on one chart must not relearn it on the next, and
+# that only holds if the mapping lives in one place.
+#
+# Checked against a colour-vision validator rather than chosen by eye. The
+# earlier values (#1f4e79 / #c77b30 / #4a7c59, used by the Stage 12 and 13
+# charts) failed on two counts: the blue sat below the readable lightness band,
+# and the blue and green fell under the chroma floor, so both read as grey. The
+# green was also only just separable from the orange under protanopia. Moving
+# the green toward teal is what fixes that pair: red-green confusion is the
+# common deficiency, and teal escapes it where a leaf green cannot.
+FUND_COLOR = {"VTI": "#3d7fd6", "VXUS": "#c26a1c", "BND": "#12907f"}
+
+# Status colours are reserved for the drift bands and never reused for a fund.
+# Always paired with the band's name in text, so the state is never carried by
+# colour alone.
+BAND_COLOR = {"green": "#12907f", "amber": "#c26a1c", "red": "#c0392b"}
+
 
 # --- audience-facing formatting ------------------------------------------
 

@@ -462,3 +462,63 @@ are not used anywhere.
    alert if `close_was_filled` stops being constant.
 4. **Put the API behind something real** before it faces a network: a production server,
    and authentication.
+
+## Monitoring and handoff
+
+Built in Stage 14. Full plan in `docs/monitoring_plan.md`, runbook in
+`docs/handoff_plan.md`, wireframe in `reports/dashboard_sketch.png`. The thresholds also
+live in code as `service.MONITOR_THRESHOLDS`, so the document and the checks cannot drift
+apart, and `service.monitoring_checks(matrix, bundle)` runs every one of them that current
+data can answer.
+
+**The horizon decides what is monitorable.** A forecast made today cannot be scored for 21
+trading days, about 29 calendar days, so every model-quality metric lags by a month: the
+monitor cannot say the model broke today, only that it was broken a month ago. Worse, a
+21-day window over three funds carries **3 independent observations, not 63**, so a monthly
+rolling MAE is not a measurement and a threshold on one would fire on noise. Model quality
+is therefore watched on a **63-day window (9 observations)** while the data and system
+checks do the daily work.
+
+**Thresholds are anchored to measured values, not conventions.**
+
+| Layer | Check | Threshold | Where the number comes from |
+|---|---|---|---|
+| Data | Price freshness | > 4 calendar days | The largest gap ever observed between consecutive trading days is exactly 4 |
+| Data | Forward-filled closes | > 0 | Currently 0, so `close_was_filled` has never been exercised |
+| Data | Rows per ticker | not all equal | Currently 251 / 251 / 251, enforced by `drop_incomplete_days` |
+| Model | Realized volatility | outside p10-p90 | VTI 9.6-17.4, VXUS 10.4-24.2, BND 2.7-4.6, each fund's own training range |
+| Model | 63-day rolling MAE | > 0.2121pp | Upper bound of Stage 11's block-bootstrap CI on the current 0.1759 |
+| Model | Per-fund bias | outside its interval | The Stage 12 offsets with their bootstrap intervals |
+| System | p95 latency | 100ms JSON, 1000ms `/plot` | Measured: `/health` 3.0ms, `/predict` 3.5ms, `/monitor.csv` 15.8ms, `/run_full_analysis` 17.9ms, `/plot` 225ms |
+| Business | Any flag raised | any flag is an event | Zero have ever fired |
+
+**`/plot` is 50 times slower than the JSON routes** because it renders matplotlib on every
+request, so it is the route that degrades first under load. That ordering is worth knowing
+before an incident rather than during one.
+
+**Retraining is monthly**, aligned to the 21-day horizon, with out-of-cycle triggers on the
+volatility, MAE and bias rows. Refitting more often would be judged on evidence that does
+not exist yet.
+
+**Ownership.** The analyst runs the refit and is first responder for the data, model and
+system layers. The firm principal approves threshold changes, out-of-cycle retraining and
+rollbacks, and owns the business layer, since only the decision owner can act on a
+threshold being wrong. Dana reports a stale `as_of` date. Issues are logged as GitHub
+issues labelled by layer.
+
+**The honest gaps.** Three of the fourteen checks report `no data`, because this monitor
+has never run in production: there is no history of served forecasts, no latency series and
+no flags. The widest drift in the observed year was **2.23pp** against a 3pp amber line, so
+**the alert path is untested**, and the runbook says to treat the first flag ever raised as
+a possible bug in the alerting before treating it as a portfolio event.
+
+### A note on chart colours
+
+`reporting.FUND_COLOR` is the single definition of the per-fund palette, checked with a
+colour-vision validator rather than chosen by eye. The values used by the Stage 12 and 13
+charts (`#1f4e79` / `#c77b30` / `#4a7c59`) failed on two counts: the blue sat below the
+readable lightness band, and the blue and green both fell under the chroma floor, so they
+read as grey to some viewers. The green was also only marginally separable from the orange
+under protanopia. The current values move the green toward teal, which is what fixes that
+pair, and pass all five checks. The committed Stage 12 and 13 images predate this and still
+use the old palette; regenerating them is a re-run away.

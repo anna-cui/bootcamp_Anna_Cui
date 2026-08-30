@@ -270,6 +270,85 @@ def plot_forecast_png(bundle, matrix, amber=AMBER_PP, level=0.95, dpi=110):
     return buf.getvalue()
 
 
+# --- monitoring -----------------------------------------------------------
+
+# The thresholds from docs/monitoring_plan.md, as data rather than prose. A plan
+# whose numbers live only in a markdown file drifts away from the code that is
+# supposed to enforce them; keeping them here means the document and the check
+# cannot disagree without one of them failing.
+MONITOR_THRESHOLDS = {
+    "freshness_days": 4,          # largest observed gap between trading days
+    "mae_upper": 0.2121,          # upper bound of the block-bootstrap CI on 0.1759
+    "vol_band": {"VTI": (9.6, 17.4), "VXUS": (10.4, 24.2), "BND": (2.7, 4.6)},
+    "bias_interval": {"VTI": (0.0446, 0.1769), "VXUS": (-0.1846, 0.1308),
+                      "BND": (0.0583, 0.2445)},
+}
+
+
+def monitoring_checks(matrix, bundle, now=None, thresholds=None):
+    """Run every threshold in the monitoring plan that current data can answer.
+
+    Returns one row per check with its value, its threshold and a status. Checks
+    that need production history the monitor has never generated - a rolling MAE
+    over *served* forecasts, flag counts, warning lead times - are reported as
+    `no data` rather than silently omitted, because a monitoring dashboard that
+    hides its own blind spots is worse than one that admits them.
+    """
+    th = thresholds or MONITOR_THRESHOLDS
+    now = pd.Timestamp(now or pd.Timestamp.today().normalize())
+    rows = []
+
+    def add(layer, check, value, threshold, status):
+        rows.append({"layer": layer, "check": check, "value": value,
+                     "threshold": threshold, "status": status})
+
+    # --- data
+    last = pd.Timestamp(matrix["date"].max())
+    age = int((now - last).days)
+    add("data", "price freshness", f"{age} d", f"<= {th['freshness_days']} d",
+        "ok" if age <= th["freshness_days"] else "ALERT")
+
+    filled = int(matrix["close_was_filled"].sum()) if "close_was_filled" in matrix else 0
+    add("data", "forward-filled closes", filled, "0", "ok" if filled == 0 else "ALERT")
+
+    counts = matrix.groupby("ticker").size()
+    balanced = counts.nunique() == 1
+    add("data", "rows per ticker", " / ".join(str(int(c)) for c in counts),
+        "all equal", "ok" if balanced else "ALERT")
+
+    # --- model
+    mae = bundle["mae"]
+    add("model", "test MAE", f"{mae:.4f} pp", f"<= {th['mae_upper']:.4f}",
+        "ok" if mae <= th["mae_upper"] else "ALERT")
+
+    for t, (lo, hi) in th["vol_band"].items():
+        sub = matrix[matrix["ticker"] == t].sort_values("date")["vol_21"].dropna()
+        if sub.empty:
+            add("model", f"volatility {t}", "n/a", f"{lo}-{hi}%", "no data")
+            continue
+        v = float(sub.iloc[-1])
+        add("model", f"volatility {t}", f"{v:.1f}%", f"{lo}-{hi}%",
+            "ok" if lo <= v <= hi else "ALERT")
+
+    for t, (lo, hi) in th["bias_interval"].items():
+        b = bundle["per_fund_bias"].get(t)
+        if b is None:
+            add("model", f"bias {t}", "n/a", f"[{lo:+.3f}, {hi:+.3f}]", "no data")
+            continue
+        add("model", f"bias {t}", f"{b:+.4f} pp", f"[{lo:+.3f}, {hi:+.3f}]",
+            "ok" if lo <= b <= hi else "ALERT")
+
+    # --- checks that need production history
+    add("model", "rolling 63-day MAE on served forecasts", "-", f"<= {th['mae_upper']:.4f}",
+        "no data")
+    add("system", "p95 latency, error rate", "-", "100ms JSON / 1000ms plot / 1%",
+        "no data")
+    add("business", "flags raised, unactioned rate, warning lead time", "-",
+        "any flag is an event", "no data")
+
+    return pd.DataFrame(rows)
+
+
 def run_full_analysis(prices=None, matrix=None, bundle=None, amber=AMBER_PP,
                       red=RED_PP, level=0.95, path=MODEL_PATH, refit=False):
     """The whole chain in one call, returning what a caller needs and nothing else.
