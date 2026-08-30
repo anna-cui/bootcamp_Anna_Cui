@@ -155,6 +155,23 @@ compromise, and it is stated rather than hidden.
 Stage 12: per-fund models, or per-fund interactions. The second is cheaper and the fund
 dummies already exist.
 
+> **Amended after Stage 12.** The recommendation above was carried out and found to be
+> impossible. Both options fail, and for the same reason: **`abs_drift_rel` is `abs_drift`
+> divided by the target weight** (maximum discrepancy across the panel, 1.8e-15), so it is
+> already `abs_drift` interacted with the fund. Adding the explicit interaction gives a
+> singular design matrix, and a per-fund model cannot hold both columns at once.
+>
+> The deeper error is in calling this a correctable bias at all. **In-sample per-fund bias
+> is zero to machine precision** for every fund, because the fund dummies force it, so no
+> per-fund term fitted on the training window can see a test bias that is not in that
+> window. The target itself moved **+0.31pp** between windows, and BND's moved **+0.81pp**.
+> The bias is regime drift, not misspecification.
+>
+> Measured rather than argued: a separate model per fund spends 15 parameters against about
+> 24 independent observations, scores **MAE 0.216** where the pooled 6-parameter model
+> scores **0.176**, and leaves **all three** funds biased rather than two. The correction
+> that does work is the smaller model plus a published offset. See `docs/reporting.md`.
+
 ---
 
 ## 6. What the monitor can now publish
@@ -229,3 +246,15 @@ The material for a stakeholder write-up is now in place:
 
 The one thing Stage 12 should not do is present the confidence interval. It is 11 times
 narrower than the prediction interval and answers a question nobody is asking.
+
+> **Amended after Stage 12.** Item 2 above was wrong and is corrected in section 5: the
+> named bias is not correctable, and the reason it is not is more useful than the
+> correction would have been. Items 1, 3, 4 and 5 held, and the instruction about the
+> confidence interval was followed.
+>
+> Stage 12 also reordered what this list implies. Swinging each assumption against BND's
+> 95% upper bound puts **regime at 0.31pp, model specification at 0.10pp, and the
+> Gaussian-against-empirical question this document spends section 3 on at 0.02pp**. The
+> honest reading is that Stages 09 to 11 refined the third, fourth and fifth largest
+> levers, and the largest one is the length of the data window. That is the same fix
+> section 2 identified for the degenerate block bootstrap, arrived at independently.
