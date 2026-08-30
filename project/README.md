@@ -218,3 +218,64 @@ out as a test set. Scaling belongs inside the split.
 on a truncated history and compares the overlap. The pipeline runs it on all 11 modelling
 features, then runs it against a deliberately leaky build to confirm the test itself
 works.
+
+## Reporting & Delivery
+
+Built in Stage 12 by `src/reporting.py`, produced by `notebooks/delivery.ipynb`. The
+reasoning is in `docs/reporting.md`; this section is the summary.
+
+**The deliverable is two files, not one.** The firm principal decides whether to trust the
+model, which needs the caveats. Dana decides whether to raise a fund this month, which
+needs a number and a colour. A caveat Dana cannot act on hides the number she can, so:
+
+| Artifact | Reader | Contains |
+|---|---|---|
+| `reports/final_report.md` | firm principal | Forecast, the bias finding, the sensitivity ordering, assumptions, next steps |
+| `reports/drift_monitor_current.csv` | Dana | Drift today, projection, 95% band, worst case, and an `action` column. No model vocabulary |
+| `reports/decision_log.json` | reviewer or successor | Six decisions across Stages 06, 07, 10a and 12, each with the alternative rejected and the risk taken |
+
+**What the monitor currently says.** No fund needs attention in the next 21 trading days,
+and that survives every assumption tested. VTI is projected at 0.64pp, VXUS at 0.99pp and
+BND at 1.64pp, with the widest 95% upper bound across all scenarios at 2.14pp against an
+amber line of 3pp. Against a persistence baseline the model improves mean absolute error
+by 25.8%.
+
+**Stage 11's handoff instruction turned out to be impossible, and that is the main
+finding.** Stage 11 asked Stage 12 to correct a per-fund bias with interactions. Two things
+block it, both measured rather than argued:
+
+- **The interaction already exists.** `abs_drift_rel` is `abs_drift` divided by the target
+  weight, to within 1.8e-15 across the whole panel, which makes it that interaction under
+  another name. Adding it explicitly gives a singular design matrix, and a per-fund model
+  cannot hold both columns at once. `fund_interactions` raises with the reason rather than
+  letting a rank-deficient matrix through.
+- **The bias is not in the training window.** In-sample per-fund bias is zero to machine
+  precision because the fund dummies force it. The target itself rose 0.31pp between the
+  training and test windows, and BND's rose 0.81pp. It is regime drift, not misfit.
+
+Every attempt to add flexibility made things worse: separate per-fund models spend 15
+parameters against about 24 independent observations, score MAE 0.216 where the pooled
+6-parameter model scores 0.176, and leave all three funds biased rather than two. What
+gets published is the **smaller** model plus a measured offset, labelled as an observation
+rather than a fitted parameter.
+
+**The project's priorities are reordered.** Swinging each assumption one at a time against
+BND's 95% upper bound:
+
+| Assumption | Swing |
+|---|---|
+| Regime, test window against training window | **0.31pp** |
+| Bias adjustment, raw against measured offset | 0.15pp |
+| Model specification, 6-param against 11-param | 0.10pp |
+| Confidence level, 95% against 99% | 0.07pp |
+| Interval shape, empirical against Gaussian | 0.02pp |
+
+Regime beats specification three to one and interval shape twenty to one. Stages 09
+through 11 refined the third, fourth and fifth largest levers. **The next unit of effort
+belongs on the length of the data window, not on the model**, which is also the only fix
+for Stage 11's finding that every interval here is a floor rather than a bound.
+
+**Nothing about the data, the thresholds or the features changed in Stage 12.** It
+packages what exists. The one modelling decision taken, preferring the 6-parameter
+specification, ratifies a choice Stage 10a's variant sweep had already made on independent
+evidence.

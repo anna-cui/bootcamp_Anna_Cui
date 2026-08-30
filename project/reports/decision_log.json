@@ -1,0 +1,62 @@
+[
+  {
+    "timestamp": "2026-08-30T09:55:59",
+    "stage": "06",
+    "step": "Missing closes",
+    "decision": "Forward fill, and flag every filled row",
+    "rationale": "A drift series with holes is unreadable; a silent fill is untraceable.",
+    "alternatives": "Drop incomplete days; interpolate",
+    "risk": "A long vendor outage would be filled invisibly if the flag is not watched.",
+    "impact": "close_was_filled is currently constant, so untested in production."
+  },
+  {
+    "timestamp": "2026-08-30T09:55:59",
+    "stage": "07",
+    "step": "Threshold unit",
+    "decision": "Percentage points, with the relative unit kept as a scenario",
+    "rationale": "The principal reads pp. Stage 12 confirmed the model is indifferent: 25.8% improvement over persistence in pp against 25.6% relative.",
+    "alternatives": "Share of each fund target",
+    "risk": "BND is 10% of the portfolio, so 1pp is a tenth of its target and a sixtieth of VTI. The units are not comparable to a reader who forgets that.",
+    "impact": "Question closed on modelling grounds; the principal decides operationally."
+  },
+  {
+    "timestamp": "2026-08-30T09:55:59",
+    "stage": "10a",
+    "step": "Split",
+    "decision": "Chronological on dates, not rows and not random",
+    "rationale": "A random split leaks the future through the 21-day overlap.",
+    "alternatives": "Random split; TimeSeriesSplit only",
+    "risk": "One split, one cut date. The score depends on where the cut falls.",
+    "impact": "Scored 0.692 against 0.378 random, which contradicted what Stages 08 and 09 predicted; both docs were amended."
+  },
+  {
+    "timestamp": "2026-08-30T09:55:59",
+    "stage": "12",
+    "step": "Model choice",
+    "decision": "Publish the 6-parameter model, not the 11-parameter one",
+    "rationale": "Lower MAE (0.176 vs 0.192) and roughly half the VTI bias, on a target carrying about 24 independent observations.",
+    "alternatives": "11-param pooled; slope x fund interaction; separate model per fund",
+    "risk": "Four candidates on one split; the ranking could reorder on a longer window.",
+    "impact": "Moves BND 95% upper bound from 2.14pp to 2.04pp."
+  },
+  {
+    "timestamp": "2026-08-30T09:55:59",
+    "stage": "12",
+    "step": "Bias handling",
+    "decision": "Publish a measured offset beside the raw forecast, do not re-specify",
+    "rationale": "In-sample per-fund bias is zero by construction, so the test bias is out-of-sample regime drift no per-fund term fitted here can see.",
+    "alternatives": "Per-fund interactions (rank deficient); separate models (worse)",
+    "risk": "The offset is an observation from one window and may not persist.",
+    "impact": "Moves BND 95% upper bound from 2.04pp to 1.89pp."
+  },
+  {
+    "timestamp": "2026-08-30T09:55:59",
+    "stage": "12",
+    "step": "Interval published",
+    "decision": "Prediction interval, not confidence interval",
+    "rationale": "Dana reads one fund on one day, which is the prediction question.",
+    "alternatives": "Confidence interval, half-width 0.034pp",
+    "risk": "The wider band may read as the model being useless; the report names the persistence comparison to prevent that.",
+    "impact": "11x wider than the CI and the only honest choice for this reader."
+  }
+]

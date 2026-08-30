@@ -1,0 +1,4 @@
+fund,drift_today_pp,projected_21d_pp,lower_95_pp,upper_95_pp,projected_adjusted_pp,band_today,band_projected,worst_case_band,action
+VTI,0.5596,0.6415,0.3328,1.0418,0.5602,green,green,green,no action
+VXUS,1.1453,0.9891,0.6804,1.3894,0.98,green,green,green,no action
+BND,1.7049,1.6406,1.3319,2.0409,1.4902,green,green,green,no action
