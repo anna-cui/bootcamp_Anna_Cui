@@ -54,7 +54,10 @@ The 50% figure is a judgement, not a rule. It happens to separate `extra_data` f
 
 `fill_missing_median` replaces the remaining numeric blanks with each column's median.
 Median rather than mean because on six rows one extreme value moves the mean a long way
-and the median barely at all. The medians are computed on the surviving rows, so they
+and the median barely at all. Filling assumes the blanks are **MCAR or MAR** (missing
+completely at random, or at random given the other columns); if they are **MNAR** (missing
+*because* of the value itself, say high earners declining to report income), no fill
+recovers the pattern and the median hides it. The medians are computed on the surviving rows, so they
 describe the data actually being kept.
 
 Exactly three cells are imputed: `income` in rows 1 and 4, `score` in row 2. `age` is
@@ -76,7 +79,7 @@ as dollars and the scaled version lives beside it.
 | Assumption | If it is wrong |
 |---|---|
 | `extra_data` carries no signal | Its two values were the point, and I deleted the answer |
-| `income` is missing at random | Missingness tracks income level, and median filling erases the pattern |
+| `income` is missing at random (MCAR or MAR) | Missingness tracks income level (MNAR), and median filling erases the pattern |
 | `'Unknown'` means missing | It was a deliberate category, and meaning became absence |
 | `zipcode` is an identifier | Nothing - this one is safe |
 | 50% is a sensible sparsity cut | A different cut keeps or kills `income` |

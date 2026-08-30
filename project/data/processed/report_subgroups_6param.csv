@@ -1,0 +1,4 @@
+ticker,n,mae,mae_lo,mae_hi,bias,bias_lo,bias_hi,bias_excludes_zero,bias_share_of_mae
+BND,42,0.1748,0.0904,0.2503,0.1503,0.0583,0.2445,True,0.86
+VTI,42,0.153,0.135,0.1973,0.0813,0.0446,0.1769,True,0.5315
+VXUS,42,0.2,0.1381,0.2574,0.0091,-0.1846,0.1308,False,0.0454

@@ -1,0 +1,11 @@
+assumption,low,high,low_delta,high_delta,swing
+"Regime
+(test window vs training window)",2.0409,1.7341,0.0,-0.3068,0.3068
+"Bias adjustment
+(raw vs measured offset)",2.0409,1.8906,0.0,-0.1503,0.1503
+"Model specification
+(6-param vs 11-param)",2.0409,2.1404,0.0,0.0995,0.0995
+"Confidence level
+(95% vs 99%)",2.0409,2.115,0.0,0.0742,0.0742
+"Interval shape
+(empirical vs Gaussian)",2.0409,2.025,0.0,-0.0158,0.0158

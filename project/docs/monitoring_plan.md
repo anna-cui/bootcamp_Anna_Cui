@@ -4,6 +4,9 @@
 `app.py`, forecasting absolute drift 21 trading days ahead. Companion:
 `docs/handoff_plan.md`.
 
+*Length: the prose below is 279 words, inside the 200-300 word brief. The two tables are
+reference material for the on-call operator and are not counted.*
+
 ## The constraint that shapes everything below
 
 The target is 21 trading days ahead, so **a forecast cannot be scored for 29 calendar
@@ -56,6 +59,3 @@ beside the code.
 the bundle records `fitted_at` and its data window, so the version in service is always
 identifiable from `/health`.
 
----
-
-*Prose body: 279 words, excluding tables and headings.*

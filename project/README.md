@@ -1,6 +1,6 @@
 # Portfolio Drift Monitor
 
-**Stage:** Data Preprocessing (Stage 06)
+**Stage:** Lifecycle Review (Stage 16) - final submission
 
 ## Problem Statement
 
@@ -32,6 +32,12 @@ fine; this is not a trading tool.
 **Descriptive.** The question is where the weights are now, not where they will be next
 month. No forecast, on purpose.
 
+> **Amended in Stages 10a to 12.** The Stage 01 framing was descriptive, and the daily
+> descriptive table is still the core deliverable. From Stage 10a the monitor also
+> *projects* absolute drift 21 trading days ahead, with a 95% interval, so the principal
+> hears that a fund is approaching amber before it crosses. The forecast sits beside the
+> descriptive number, it does not replace it.
+
 **Metric:** drift in percentage points per fund, calculated as current weight minus
 target weight.
 
@@ -44,8 +50,9 @@ flag), plus a chart of the weights over the past year.
 
 ## Assumptions & Constraints
 
-- Daily adjusted closes for three tickers from yfinance. No API key, no paid data.
-- Splits and dividends are assumed handled correctly by the data provider.
+- Daily closes for three tickers from yfinance, pulled with `auto_adjust=False`: split-adjusted
+  but not dividend-adjusted, so weights reflect price movement only. No API key, no paid data.
+- Splits are assumed handled correctly by the data provider.
 - Weights come from price movement only. Client deposits and withdrawals are not
   modeled, so this describes the model portfolio and not any one client's account.
 - Three funds, one portfolio. No tax lots, no cash sleeve, no customization.
@@ -57,8 +64,9 @@ flag), plus a chart of the weights over the past year.
 
 - The model's drift is not the same as a real client account's drift, and someone will
   eventually read it that way unless the file says otherwise.
-- If 5pp turns out to fire every other month, the report gets ignored. I will check how
-  often it would have triggered over the past three years before fixing the threshold.
+- If 5pp turns out to fire every other month, the report gets ignored. Stage 07 checked how
+  often it would have triggered over the past year: never (widest drift 2.23pp), so the
+  threshold's sensitivity is documented in `docs/outliers.md` rather than the threshold changed.
 - A stale or missing price produces a weight that looks plausible but is wrong, so the
   data gets validated on the way in.
 - Every number depends on the last rebalance date, so that has to be an explicit input
@@ -69,32 +77,32 @@ flag), plus a chart of the weights over the past year.
 Every stage of the course, and the file in this repo that holds it. The full version, with
 the decision taken at each stage, is `docs/lifecycle_framework_guide.md`.
 
-| # | Lifecycle stage | Where it lives |
-|---|---|---|
-| 1 | Problem Framing & Scoping | `README.md` (above), `docs/stakeholder-memo.md` |
-| 2 | Tooling Setup | `requirements.txt`, `.env.example`, `.gitignore` |
-| 3 | Python Fundamentals | `src/utils.py`, `src/config.py`, `notebooks/python_fundamentals_summary.ipynb` |
-| 4 | Data Acquisition / Ingestion | `data/raw/api_yfinance_*.csv`, ingest cell in `notebooks/project_pipeline.ipynb` |
-| 5 | Data Storage | `data/raw/`, `data/processed/`, the Data Storage section below |
-| 6 | Data Preprocessing | `src/cleaning.py`, the Data Cleaning section below |
-| 7 | Outlier Analysis & Risk Assumptions | `src/outliers.py`, `docs/outliers.md` |
-| 8 | Exploratory Data Analysis | `src/eda.py`, `docs/eda.md`, `notebooks/eda.ipynb` |
-| 9 | Feature Engineering | `src/features.py`, `docs/features.md`, the Feature Definitions section below |
-| 10 | Modeling: Linear Regression | `src/modeling.py`, `docs/modeling.md`, `notebooks/modeling_regression.ipynb` |
-| 11 | Modeling: Time Series & Classification | `src/timeseries.py`, `docs/timeseries.md`, `notebooks/modeling_timeseries.ipynb` |
-| 12 | Evaluation & Risk Communication | `src/evaluation.py`, `docs/evaluation.md`, `notebooks/evaluation.ipynb` |
-| 13 | Results Reporting & Delivery Design | `src/reporting.py`, `docs/reporting.md`, `notebooks/delivery.ipynb`, `reports/` |
-| 14 | Productization | `src/service.py`, `app.py`, `docs/productization.md`, `notebooks/productization.ipynb`, `model/model.pkl` |
-| 15 | Deployment & Monitoring | `docs/monitoring_plan.md`, `docs/handoff_plan.md`, `reports/dashboard_sketch.png` |
-| 16 | Orchestration & System Design | `docs/orchestration_plan.md`, `src/run_step.py`, `reports/images/pipeline_dag.png` |
-| — | Lifecycle Review | `docs/lifecycle_framework_guide.md`, `docs/project_summary.md`, this README |
+| # | Lifecycle stage | Goal at this stage | Where it lives |
+|---|---|---|---|
+| 01 | Problem Framing & Scoping | Agree what the report is for, who reads it, and what triggers action | `README.md` (above), `docs/stakeholder-memo.md` |
+| 02 | Tooling Setup | A reproducible environment and repo scaffold, with secrets kept out of git | `requirements.txt`, `.env.example`, `.gitignore` |
+| 03 | Python Fundamentals | Weight and drift arithmetic in one reusable module, not scattered across cells | `src/utils.py`, `src/config.py`, `notebooks/python_fundamentals_summary.ipynb` |
+| 04 | Data Acquisition / Ingestion | Pull one year of closes for the three funds, validate, save raw and timestamped | `data/raw/api_yfinance_*.csv`, ingest section of `notebooks/project_pipeline.ipynb` |
+| 05 | Data Storage | Raw immutable, processed derived; formats and paths chosen and documented | `data/raw/`, `data/processed/`, `src/utils.py` (`write_df` / `read_df`), the Data Storage section below |
+| 06 | Data Preprocessing | Clean the price panel without inventing prices, and log every change | `src/cleaning.py`, the Data Cleaning section below |
+| 07 | Outlier Analysis & Risk Assumptions | Flag extreme returns, state the thresholds, and test how sensitive the alarm is to them | `src/outliers.py`, `docs/outliers.md` |
+| 08 | Exploratory Data Analysis | Understand whether drift is trend or noise before modelling it | `src/eda.py`, `docs/eda.md`, `notebooks/eda.ipynb` |
+| 09 | Feature Engineering | Build causal, leak-free features that each trace back to an EDA finding | `src/features.py`, `docs/features.md`, the Feature Definitions section below |
+| 10a | Modeling: Linear Regression | Predict drift 21 days ahead; check the four regression assumptions honestly | `src/modeling.py`, `docs/modeling.md`, `notebooks/modeling_regression.ipynb` |
+| 10b | Modeling: Time Series & Classification | Time-aware split, lag/rolling features and a `Pipeline` with scaling inside the split | `src/timeseries.py`, `docs/timeseries.md`, `notebooks/modeling_timeseries.ipynb` |
+| 11 | Evaluation & Risk Communication | Put an honest interval on the forecast and say what it does and does not cover | `src/evaluation.py`, `docs/evaluation.md`, `notebooks/evaluation.ipynb` |
+| 12 | Results Reporting & Delivery Design | Two artifacts for two readers: a report for the principal, a CSV for Dana | `src/reporting.py`, `docs/reporting.md`, `notebooks/delivery.ipynb`, `reports/` |
+| 13 | Productization | Package the model so someone else can run it: saved model, `src/service.py`, Flask API | `src/service.py`, `app.py`, `docs/productization.md`, `notebooks/productization.ipynb`, `model/model.pkl` |
+| 14 | Deployment & Monitoring | Define how we would know the monitor is still working, and who acts | `docs/monitoring_plan.md`, `docs/handoff_plan.md`, `reports/dashboard_sketch.png` |
+| 15 | Orchestration & System Design | Break the pipeline into scheduled tasks with a DAG, logging and retries | `docs/orchestration_plan.md`, `src/run_step.py`, `reports/images/pipeline_dag.png` |
+| 16 | Lifecycle Review | Make the whole repo legible: map, summary, one final end-to-end run | `docs/lifecycle_framework_guide.md`, `docs/project_summary.md`, this README |
 
-`notebooks/project_pipeline.ipynb` runs all of it in one kernel, top to bottom, in 74 code
+Homework folder numbers match these stage numbers (`homework/homework00` to
+`homework/homework13`, with `homework10a` and `homework10b`); stages 14 to 16 are
+project-only, as the course structure prescribes.
+
+`notebooks/project_pipeline.ipynb` runs all of it in one kernel, top to bottom, in 79 code
 cells. It is the single thing to run to confirm the chain still works.
-
-**Repo folder numbers do not match syllabus stage numbers.** The course reading materials
-count a setup week as Stage 00 and split modeling into 10a and 10b, so `homework/homework12`
-is syllabus Stage 13. The guide has the full crosswalk.
 
 ## Install and run
 
@@ -115,10 +123,10 @@ Then, in order:
 | 2 | `python app.py` | Serves the model on http://127.0.0.1:5001 |
 | 3 | `python src/run_step.py --step score` | Refreshes the monitor table from the command line, no notebook needed |
 
-**Step 1 is required first on a fresh clone.** `data/processed/` is derived rather than
-committed wholesale, so there is nothing for the API to serve until the pipeline has run
-once. Longer notes on the API are in The API section below, and on the CLI in Running one
-pipeline task from the command line.
+**Step 1 refreshes everything.** `data/processed/` and `model/model.pkl` are committed, so
+`python app.py` works straight after a clone; run the pipeline first whenever the latest
+prices are wanted. Longer notes on the API are in The API section below, and on the CLI in
+Running one pipeline task from the command line.
 
 **Where to start reading**, depending on who you are:
 
@@ -148,10 +156,11 @@ project/               the drift monitor
 class_materials/       handouts; gitignored, never pushed
 ```
 
-**`data/raw/` is kept in full; `data/processed/` is not.** Raw pulls are immutable and each
-one is a distinct observation, because the rolling window moves. Processed data is derived
-and must be re-creatable by running the code, so one worked generation is committed as an
-example and the rest is regenerated rather than archived.
+**`data/raw/` is kept in full; `data/processed/` keeps the generations the notebooks cite.**
+Raw pulls are immutable and each one is a distinct observation, because the rolling window
+moves. Processed data is derived and must be re-creatable by running the code; the committed
+copies are there so the saved output of each stage can be inspected without re-running the
+pipeline, and any of them can be deleted and regenerated.
 
 Commit at the end of each stage and push before each class. Re-freeze `requirements.txt`
 whenever a package is added. `.env` is never committed; `.env.example` is.
@@ -350,9 +359,9 @@ behind them. Built in Stage 13; the reasoning is in `docs/productization.md`.
 yfinance path by design. Code tests `!= 'dummy_key_123'` rather than `bool(key)`, because a
 placeholder is truthy.
 
-**`data/processed/` is derived, so the pipeline has to run before the API has anything to
-serve.** `app.py` falls back to the newest raw CSV and, failing that, raises an error naming
-the notebook to run. That is the expected fresh-clone state, not a fault.
+**`data/processed/` is derived.** The committed copy lets `app.py` serve immediately after a
+clone. If the folder is ever emptied, `app.py` falls back to the newest raw CSV and, failing
+that, raises an error naming the notebook to run.
 
 **The pipeline pulls a rolling one-year window**, so figures move between runs. Every
 notebook ends with a self-check cell that recomputes the numbers quoted in its own markdown
@@ -553,7 +562,7 @@ rollbacks, and owns the business layer, since only the decision owner can act on
 threshold being wrong. Dana reports a stale `as_of` date. Issues are logged as GitHub
 issues labelled by layer.
 
-**The honest gaps.** Three of the fourteen checks report `no data`, because this monitor
+**The honest gaps.** Three of the thirteen checks report `no data`, because this monitor
 has never run in production: there is no history of served forecasts, no latency series and
 no flags. The widest drift in the observed year was **2.23pp** against a 3pp amber line, so
 **the alert path is untested**, and the runbook says to treat the first flag ever raised as

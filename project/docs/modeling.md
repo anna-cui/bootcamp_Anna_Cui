@@ -79,7 +79,7 @@ Measured:
 | Split | train R² | test R² | test RMSE |
 |---|---|---|---|
 | chronological | 0.458 | **0.692** | **0.233** |
-| random (shuffled) | 0.556 | 0.378 | 0.392 |
+| random (shuffled) | 0.531 | 0.501 | 0.348 |
 
 The chronological split scores **better**, and it also beats its own training score.
 

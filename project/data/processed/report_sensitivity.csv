@@ -1,0 +1,7 @@
+scenario,assumption,bnd_upper_95_pp,delta,pct_change
+baseline,"test-window regime, 6-param, raw, empirical 95%",2.0409,0.0,0.0
+Regime (test window vs training window),alternate,1.7341,-0.3068,-15.031
+Bias adjustment (raw vs measured offset),alternate,1.8906,-0.1503,-7.3627
+Model specification (6-param vs 11-param),alternate,2.1404,0.0995,4.8772
+Confidence level (95% vs 99%),alternate,2.115,0.0741,3.6326
+Interval shape (empirical vs Gaussian),alternate,2.025,-0.0159,-0.7773

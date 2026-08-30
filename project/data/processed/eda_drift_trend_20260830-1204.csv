@@ -1,0 +1,4 @@
+ticker,n_obs,current_pp,rate_pp_per_year,corr_with_time,r_squared,years_to_amber,years_to_red
+BND,251,-1.705,-1.688,-0.929,0.863,0.767,1.952
+VTI,251,0.56,0.343,0.175,0.031,7.105,12.927
+VXUS,251,1.145,1.345,0.643,0.413,1.379,2.866

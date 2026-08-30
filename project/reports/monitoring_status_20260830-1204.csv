@@ -1,0 +1,14 @@
+layer,check,value,threshold,status
+data,price freshness,2 d,<= 4 d,ok
+data,forward-filled closes,0,0,ok
+data,rows per ticker,251 / 251 / 251,all equal,ok
+model,test MAE,0.1759 pp,<= 0.2121,ok
+model,volatility VTI,10.8%,9.6-17.4%,ok
+model,volatility VXUS,11.2%,10.4-24.2%,ok
+model,volatility BND,4.1%,2.7-4.6%,ok
+model,bias VTI,+0.0813 pp,"[+0.045, +0.177]",ok
+model,bias VXUS,+0.0091 pp,"[-0.185, +0.131]",ok
+model,bias BND,+0.1503 pp,"[+0.058, +0.244]",ok
+model,rolling 63-day MAE on served forecasts,-,<= 0.2121,no data
+system,"p95 latency, error rate",-,100ms JSON / 1000ms plot / 1%,no data
+business,"flags raised, unactioned rate, warning lead time",-,any flag is an event,no data

@@ -1,0 +1,4 @@
+predictor,mae,rmse,r2,n
+"pipeline, lag_1 only",0.239,0.2857,0.5376,126
+persistence (no model),0.2392,0.2947,0.5081,126
+train mean (flat line),0.4024,0.5187,-0.5235,126

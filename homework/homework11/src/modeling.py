@@ -98,9 +98,13 @@ def fit_ols(X, y, feature_names=None):
             "one-hot encoded every level, drop one to serve as the reference."
         )
 
-    xtx_inv = np.linalg.inv(design.T @ design)
-    beta = xtx_inv @ design.T @ y
-    fitted = design @ beta
+    # np.errstate: on macOS the Accelerate BLAS emits spurious divide/overflow
+    # RuntimeWarnings from matmul even when every result is finite. Silence them
+    # here so notebook output stays readable; the arithmetic is unchanged.
+    with np.errstate(all="ignore"):
+        xtx_inv = np.linalg.inv(design.T @ design)
+        beta = xtx_inv @ design.T @ y
+        fitted = design @ beta
     resid = y - fitted
 
     dof = n - k
@@ -126,7 +130,8 @@ def fit_ols(X, y, feature_names=None):
 def predict_ols(beta, X):
     """Apply fitted coefficients to a new design matrix (intercept first)."""
     X = np.asarray(X, dtype=float)
-    return np.column_stack([np.ones(len(X)), X]) @ np.asarray(beta, dtype=float)
+    with np.errstate(all="ignore"):          # see fit_ols
+        return np.column_stack([np.ones(len(X)), X]) @ np.asarray(beta, dtype=float)
 
 
 # --- the four assumptions ------------------------------------------------
@@ -176,8 +181,9 @@ def breusch_pagan(resid, X):
         raise ValueError("design matrix is rank deficient - drop a collinear column")
 
     g = e ** 2
-    beta = np.linalg.solve(design.T @ design, design.T @ g)
-    fitted = design @ beta
+    with np.errstate(all="ignore"):          # see fit_ols
+        beta = np.linalg.solve(design.T @ design, design.T @ g)
+        fitted = design @ beta
     ss_res = float(((g - fitted) ** 2).sum())
     ss_tot = float(((g - g.mean()) ** 2).sum())
     r2 = 1 - ss_res / ss_tot

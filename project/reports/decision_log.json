@@ -1,6 +1,6 @@
 [
   {
-    "timestamp": "2026-08-30T09:55:59",
+    "timestamp": "2026-08-30T12:05:07",
     "stage": "06",
     "step": "Missing closes",
     "decision": "Forward fill, and flag every filled row",
@@ -10,7 +10,7 @@
     "impact": "close_was_filled is currently constant, so untested in production."
   },
   {
-    "timestamp": "2026-08-30T09:55:59",
+    "timestamp": "2026-08-30T12:05:07",
     "stage": "07",
     "step": "Threshold unit",
     "decision": "Percentage points, with the relative unit kept as a scenario",
@@ -20,17 +20,17 @@
     "impact": "Question closed on modelling grounds; the principal decides operationally."
   },
   {
-    "timestamp": "2026-08-30T09:55:59",
+    "timestamp": "2026-08-30T12:05:07",
     "stage": "10a",
     "step": "Split",
     "decision": "Chronological on dates, not rows and not random",
     "rationale": "A random split leaks the future through the 21-day overlap.",
     "alternatives": "Random split; TimeSeriesSplit only",
     "risk": "One split, one cut date. The score depends on where the cut falls.",
-    "impact": "Scored 0.692 against 0.378 random, which contradicted what Stages 08 and 09 predicted; both docs were amended."
+    "impact": "Scored 0.692 against 0.501 random, which contradicted what Stages 08 and 09 predicted; both docs were amended."
   },
   {
-    "timestamp": "2026-08-30T09:55:59",
+    "timestamp": "2026-08-30T12:05:07",
     "stage": "12",
     "step": "Model choice",
     "decision": "Publish the 6-parameter model, not the 11-parameter one",
@@ -40,7 +40,7 @@
     "impact": "Moves BND 95% upper bound from 2.14pp to 2.04pp."
   },
   {
-    "timestamp": "2026-08-30T09:55:59",
+    "timestamp": "2026-08-30T12:05:07",
     "stage": "12",
     "step": "Bias handling",
     "decision": "Publish a measured offset beside the raw forecast, do not re-specify",
@@ -50,7 +50,7 @@
     "impact": "Moves BND 95% upper bound from 2.04pp to 1.89pp."
   },
   {
-    "timestamp": "2026-08-30T09:55:59",
+    "timestamp": "2026-08-30T12:05:07",
     "stage": "12",
     "step": "Interval published",
     "decision": "Prediction interval, not confidence interval",
