@@ -66,34 +66,95 @@ flag), plus a chart of the weights over the past year.
 
 ## Lifecycle Mapping
 
-Goal -> Stage -> Deliverable
+Every stage of the course, and the file in this repo that holds it. The full version, with
+the decision taken at each stage, is `docs/lifecycle_framework_guide.md`.
 
-- Agree what the report is for and what triggers action -> Problem Framing & Scoping
-  (Stage 01) -> this README and `stakeholder-memo.md` in this folder
-- Reproducible environment -> Tooling Setup (Stage 02) -> `requirements.txt`,
-  `.env.example`
-- Reusable weight and drift calculations -> Python Fundamentals (Stage 03) ->
-  `src/utils.py`
-- Pull and check the daily prices -> Data Acquisition & Ingestion (Stage 04) -> ingest
-  script, raw pulls in `data/raw/`
-- Keep raw and derived data so results can be re-created -> Data Storage (Stage 05) ->
-  Parquet files in `data/processed/`
+| # | Lifecycle stage | Where it lives |
+|---|---|---|
+| 1 | Problem Framing & Scoping | `README.md` (above), `docs/stakeholder-memo.md` |
+| 2 | Tooling Setup | `requirements.txt`, `.env.example`, `.gitignore` |
+| 3 | Python Fundamentals | `src/utils.py`, `src/config.py`, `notebooks/python_fundamentals_summary.ipynb` |
+| 4 | Data Acquisition / Ingestion | `data/raw/api_yfinance_*.csv`, ingest cell in `notebooks/project_pipeline.ipynb` |
+| 5 | Data Storage | `data/raw/`, `data/processed/`, the Data Storage section below |
+| 6 | Data Preprocessing | `src/cleaning.py`, the Data Cleaning section below |
+| 7 | Outlier Analysis & Risk Assumptions | `src/outliers.py`, `docs/outliers.md` |
+| 8 | Exploratory Data Analysis | `src/eda.py`, `docs/eda.md`, `notebooks/eda.ipynb` |
+| 9 | Feature Engineering | `src/features.py`, `docs/features.md`, the Feature Definitions section below |
+| 10 | Modeling: Linear Regression | `src/modeling.py`, `docs/modeling.md`, `notebooks/modeling_regression.ipynb` |
+| 11 | Modeling: Time Series & Classification | `src/timeseries.py`, `docs/timeseries.md`, `notebooks/modeling_timeseries.ipynb` |
+| 12 | Evaluation & Risk Communication | `src/evaluation.py`, `docs/evaluation.md`, `notebooks/evaluation.ipynb` |
+| 13 | Results Reporting & Delivery Design | `src/reporting.py`, `docs/reporting.md`, `notebooks/delivery.ipynb`, `reports/` |
+| 14 | Productization | `src/service.py`, `app.py`, `docs/productization.md`, `notebooks/productization.ipynb`, `model/model.pkl` |
+| 15 | Deployment & Monitoring | `docs/monitoring_plan.md`, `docs/handoff_plan.md`, `reports/dashboard_sketch.png` |
+| 16 | Orchestration & System Design | `docs/orchestration_plan.md`, `src/run_step.py`, `reports/images/pipeline_dag.png` |
+| — | Lifecycle Review | `docs/lifecycle_framework_guide.md`, `docs/project_summary.md`, this README |
+
+`notebooks/project_pipeline.ipynb` runs all of it in one kernel, top to bottom, in 74 code
+cells. It is the single thing to run to confirm the chain still works.
+
+**Repo folder numbers do not match syllabus stage numbers.** The course reading materials
+count a setup week as Stage 00 and split modeling into 10a and 10b, so `homework/homework12`
+is syllabus Stage 13. The guide has the full crosswalk.
+
+## Install and run
+
+```bash
+git clone https://github.com/anna-cui/bootcamp_Anna_Cui.git
+cd bootcamp_Anna_Cui/project
+conda create -n bootcamp_env python=3.10
+conda activate bootcamp_env
+pip install -r requirements.txt
+cp .env.example .env
+```
+
+Then, in order:
+
+| Step | Command | What it does |
+|---|---|---|
+| 1 | `jupyter lab`, run `notebooks/project_pipeline.ipynb` top to bottom | Pulls a fresh year of prices and rebuilds everything: `data/processed/`, `model/model.pkl`, `reports/` |
+| 2 | `python app.py` | Serves the model on http://127.0.0.1:5001 |
+| 3 | `python src/run_step.py --step score` | Refreshes the monitor table from the command line, no notebook needed |
+
+**Step 1 is required first on a fresh clone.** `data/processed/` is derived rather than
+committed wholesale, so there is nothing for the API to serve until the pipeline has run
+once. Longer notes on the API are in The API section below, and on the CLI in Running one
+pipeline task from the command line.
+
+**Where to start reading**, depending on who you are:
+
+| You are | Read |
+|---|---|
+| A non-technical reader | `docs/project_summary.md` |
+| The firm principal | `reports/final_report.md` |
+| Dana, or anyone who just needs the number | `reports/drift_monitor_current.csv` |
+| An engineer inheriting this | `docs/lifecycle_framework_guide.md`, then `docs/handoff_plan.md` |
+| A reviewer checking a decision | `reports/decision_log.json`, then the matching `docs/*.md` |
 
 ## Repo Plan
 
-homework/              one folder per stage (homework00, homework01, ...)
-project/               the drift monitor, scaffolded in Stage 02
-├── data/raw/          price pulls, never edited by hand
-├── data/processed/    computed weights and drift
-├── src/               helper functions
-├── notebooks/         project_pipeline.ipynb
-├── reports/images/    charts saved by the code
-├── model/             saved model objects
-└── docs/              stakeholder memo
+```
+homework/              one folder per stage, homework00 through homework13
+project/               the drift monitor
+├── data/raw/          price pulls, immutable, never edited by hand
+├── data/processed/    derived data; regenerated by the pipeline
+├── src/               12 modules, one per stage that needed one
+├── notebooks/         project_pipeline.ipynb plus one notebook per modelling stage
+├── reports/           stakeholder artifacts; reports/images/ holds the charts
+├── model/             model.pkl, the saved bundle the API loads
+├── docs/              one .md per stage, with the reasoning behind each choice
+├── app.py             the Flask API
+├── requirements.txt   pinned, and verified against what the notebooks import
+└── README.md          this file
 class_materials/       handouts; gitignored, never pushed
+```
 
-Commit at the end of each working session, push before each class, re-freeze
-`requirements.txt` whenever a package is added. `.env` is never committed.
+**`data/raw/` is kept in full; `data/processed/` is not.** Raw pulls are immutable and each
+one is a distinct observation, because the rolling window moves. Processed data is derived
+and must be re-creatable by running the code, so one worked generation is committed as an
+example and the rest is regenerated rather than archived.
+
+Commit at the end of each stage and push before each class. Re-freeze `requirements.txt`
+whenever a package is added. `.env` is never committed; `.env.example` is.
 
 ## Data Storage
 
@@ -280,39 +341,25 @@ packages what exists. The one modelling decision taken, preferring the 6-paramet
 specification, ratifies a choice Stage 10a's variant sweep had already made on independent
 evidence.
 
-## Running this project from a fresh clone
+## Notes on running it
 
-Built in Stage 13. The reasoning is in `docs/productization.md`; this section is the
-instructions.
+The install and run steps are in **Install and run** above; this section holds the details
+behind them. Built in Stage 13; the reasoning is in `docs/productization.md`.
 
-```bash
-git clone https://github.com/anna-cui/bootcamp_Anna_Cui.git
-cd bootcamp_Anna_Cui/project
-conda create -n bootcamp_env python=3.10
-conda activate bootcamp_env
-pip install -r requirements.txt
-cp .env.example .env
-```
+**`.env` holds a deliberate placeholder Alpha Vantage key**, so every notebook takes the
+yfinance path by design. Code tests `!= 'dummy_key_123'` rather than `bool(key)`, because a
+placeholder is truthy.
 
-`.env` holds a **deliberate placeholder** Alpha Vantage key, so every notebook takes the
-yfinance path by design. Code tests `!= 'dummy_key_123'` rather than `bool(key)`, because
-a placeholder is truthy.
-
-Then, in order:
-
-| Step | Command | What it does |
-|---|---|---|
-| 1 | `jupyter lab`, run `notebooks/project_pipeline.ipynb` top to bottom | Pulls a fresh year of prices, rebuilds everything, writes `data/processed/`, `reports/` and `model/model.pkl` |
-| 2 | `python app.py` | Starts the API on http://127.0.0.1:5001 |
-| 3 | `notebooks/productization.ipynb` | Calls the API and records the responses |
-
-**Step 1 is required before step 2 on a fresh clone**, because `data/processed/` is
-regenerated rather than committed. `app.py` falls back to the newest raw CSV and, failing
-that, says exactly what to run.
+**`data/processed/` is derived, so the pipeline has to run before the API has anything to
+serve.** `app.py` falls back to the newest raw CSV and, failing that, raises an error naming
+the notebook to run. That is the expected fresh-clone state, not a fault.
 
 **The pipeline pulls a rolling one-year window**, so figures move between runs. Every
 notebook ends with a self-check cell that recomputes the numbers quoted in its own markdown
 and prints PASS or FAIL, which is what catches prose drifting away from the data.
+
+`notebooks/productization.ipynb` calls the API and records the responses, and is the place
+to look for worked examples of every route.
 
 ## The API
 
