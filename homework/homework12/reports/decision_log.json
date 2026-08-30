@@ -1,0 +1,32 @@
+[
+  {
+    "timestamp": "2026-08-30T09:54:58",
+    "stage": "12",
+    "step": "Model choice",
+    "decision": "Publish the 6-parameter model, not the 11-parameter one",
+    "rationale": "Lower MAE (0.176 vs 0.192) and roughly half the VTI bias, on a target that supports about 24 independent observations.",
+    "alternatives": "11-param pooled; slope x fund interaction; separate model per fund",
+    "risk": "Four candidates on one split. The ranking could reorder on a longer window.",
+    "impact": "Moves BND 95% upper bound from 2.14pp to 2.04pp."
+  },
+  {
+    "timestamp": "2026-08-30T09:54:58",
+    "stage": "12",
+    "step": "Bias handling",
+    "decision": "Publish a measured offset beside the raw forecast, do not re-specify",
+    "rationale": "In-sample per-fund bias is zero by construction, so the test bias is out-of-sample regime drift no per-fund term fitted here can see.",
+    "alternatives": "Per-fund interactions (rank deficient for abs_drift); separate models (worse on MAE and on all three biases)",
+    "risk": "The offset is an observation from one window and may not persist.",
+    "impact": "Moves BND 95% upper bound from 2.04pp to 1.89pp."
+  },
+  {
+    "timestamp": "2026-08-30T09:54:58",
+    "stage": "12",
+    "step": "Interval published",
+    "decision": "Prediction interval, not confidence interval",
+    "rationale": "Dana reads one fund on one day, which is the prediction question.",
+    "alternatives": "Confidence interval (half-width 0.034pp)",
+    "risk": "The wider band may read as the model being useless. The memo names the comparison against persistence to prevent that.",
+    "impact": "11x wider than the CI and the only honest choice for this reader."
+  }
+]
