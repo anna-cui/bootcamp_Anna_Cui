@@ -279,3 +279,186 @@ for Stage 11's finding that every interval here is a floor rather than a bound.
 packages what exists. The one modelling decision taken, preferring the 6-parameter
 specification, ratifies a choice Stage 10a's variant sweep had already made on independent
 evidence.
+
+## Running this project from a fresh clone
+
+Built in Stage 13. The reasoning is in `docs/productization.md`; this section is the
+instructions.
+
+```bash
+git clone https://github.com/anna-cui/bootcamp_Anna_Cui.git
+cd bootcamp_Anna_Cui/project
+conda create -n bootcamp_env python=3.10
+conda activate bootcamp_env
+pip install -r requirements.txt
+cp .env.example .env
+```
+
+`.env` holds a **deliberate placeholder** Alpha Vantage key, so every notebook takes the
+yfinance path by design. Code tests `!= 'dummy_key_123'` rather than `bool(key)`, because
+a placeholder is truthy.
+
+Then, in order:
+
+| Step | Command | What it does |
+|---|---|---|
+| 1 | `jupyter lab`, run `notebooks/project_pipeline.ipynb` top to bottom | Pulls a fresh year of prices, rebuilds everything, writes `data/processed/`, `reports/` and `model/model.pkl` |
+| 2 | `python app.py` | Starts the API on http://127.0.0.1:5001 |
+| 3 | `notebooks/productization.ipynb` | Calls the API and records the responses |
+
+**Step 1 is required before step 2 on a fresh clone**, because `data/processed/` is
+regenerated rather than committed. `app.py` falls back to the newest raw CSV and, failing
+that, says exactly what to run.
+
+**The pipeline pulls a rolling one-year window**, so figures move between runs. Every
+notebook ends with a self-check cell that recomputes the numbers quoted in its own markdown
+and prints PASS or FAIL, which is what catches prose drifting away from the data.
+
+## The API
+
+```bash
+cd project
+python app.py
+```
+
+**Port 5001, not 5000.** macOS runs AirPlay Receiver on 5000 from Monterey onward, so Flask
+either fails to bind or requests reach AirPlay and return 403, which reads like a broken
+app. Override with `PORT=5002 python app.py`.
+
+The model, the prices and the feature matrix are loaded **once at import time**. Rebuilding
+the feature matrix per request would take seconds and would give concurrent callers
+different answers as the rolling window moved underneath them.
+
+| Route | Method | Returns |
+|---|---|---|
+| `/health` | GET | Status plus provenance: which model, fitted on which window, prices through which date |
+| `/predict` | POST | Prediction from a caller-supplied feature row |
+| `/predict/<ticker>` | GET | Projected drift for one fund from its latest observation |
+| `/run_full_analysis` | GET | The whole monitor as JSON |
+| `/run_full_analysis/<amber>/<red>` | GET | The same, against caller-supplied thresholds |
+| `/plot` | GET | The drift chart as `image/png`. Accepts `?amber=` |
+| `/monitor.csv` | GET | Dana's table as a CSV download |
+
+### Examples
+
+```bash
+curl http://127.0.0.1:5001/predict/BND
+```
+
+```json
+{"fund": "BND", "as_of": "2026-08-28", "drift_today_pp": 1.7049,
+ "projected_pp": 1.6406, "interval_95_pp": [1.3319, 2.0409],
+ "projected_adjusted_pp": 1.4902, "band": "green",
+ "worst_case_band": "green", "action": "no action"}
+```
+
+```bash
+curl -X POST http://127.0.0.1:5001/predict \
+     -H "Content-Type: application/json" \
+     -d '{"features": [1.70, 17.05, 0.01, 0.05, 0.5]}'
+```
+
+The five features, in order, are `abs_drift`, `abs_drift_rel`, `drift_chg_1`,
+`drift_chg_5`, `drift_slope_21`. `/health` lists them.
+
+```bash
+curl http://127.0.0.1:5001/run_full_analysis/2/4
+curl -o monitor.csv http://127.0.0.1:5001/monitor.csv
+curl -o drift.png "http://127.0.0.1:5001/plot?amber=2"
+```
+
+**Bad input returns HTTP 400 and a JSON body with an `error` key.** Never a traceback,
+never HTML. Path parameters are declared as strings and converted by hand: Flask's
+`<float:...>` converter would make `/run_full_analysis/abc/4` fail to match the route and
+return a 404 HTML page instead of a usable error.
+
+### Why the threshold is the parameter a caller can change
+
+Stage 07 set amber at 3pp and red at 5pp and left the choice with the principal. Stage 12
+closed the question of the *unit* (percentage points against relative, 25.8% improvement
+over persistence against 25.6%) but said nothing about the *level*. So the threshold is the
+one input where a caller's question is genuinely open, and
+`/run_full_analysis/<amber>/<red>` answers it without anyone opening a notebook.
+
+At 3pp no fund needs attention. At 2pp BND requires review, and it does so on its **95%
+upper bound of 2.04pp** rather than its point forecast of 1.64pp, which is exactly the
+distinction Stage 11 argued the monitor must publish.
+
+## Stakeholder Handoff Summary
+
+### Overview and purpose
+
+The Portfolio Drift Monitor tracks how far a 60/30/10 VTI/VXUS/BND portfolio, bought at
+target and never rebalanced, has drifted from those weights, and projects that drift 21
+trading days ahead. It exists so the firm principal learns that a fund is approaching the
+rebalancing threshold **before** it crosses, and so Dana can answer a client question
+without waiting for an analyst.
+
+### Key findings and recommendations
+
+1. **No fund needs attention this month**, and that survives every assumption tested. VTI
+   projects to 0.64pp, VXUS to 0.99pp, BND to 1.64pp, and the widest 95% upper bound across
+   all scenarios is 2.14pp against an amber line of 3pp.
+2. **The model beats a persistence baseline by 25.8%** on mean absolute error, using five
+   features and six parameters.
+3. **Report BND on its upper bound, not its point estimate.** It is the fund nearest amber
+   and the fund the model is least right about, which is the worst of the three pairings.
+4. **The next real improvement is a longer data window, not a better model.** Swinging each
+   assumption against BND's upper bound: regime 0.31pp, bias adjustment 0.15pp, model
+   specification 0.10pp, confidence level 0.07pp, interval shape 0.02pp. Four stages of
+   modelling refinement went into the third-largest lever.
+
+### Assumptions and limitations
+
+| Assumption | If it is wrong |
+|---|---|
+| The next month resembles the last twelve | The largest single error source, worth 0.31pp on the headline. One year, one regime, no market stress in the window |
+| The published bias offset carries forward | Worth 0.15pp. It is a measured observation from one window, not a fitted parameter |
+| 42 test dates can describe their own uncertainty | They cannot at a 21-day timescale. **Every interval published here is a floor, not a bound** |
+| Errors come from one distribution | BND's residuals are the least well behaved, and BND is the fund closest to amber |
+| Prices arrive without gaps | Stage 06 fills them and `close_was_filled` flags them; currently constant, so untested in production |
+
+A 21-day forward target makes consecutive rows share 20 of their 21 days, so 501 training
+rows carry roughly **24 independent observations**. That single number constrains
+everything: it is why the six-parameter model beats the eleven-parameter one, why separate
+per-fund models are worse than a pooled one, and why the regression's own standard errors
+are not used anywhere.
+
+### Risks and potential issues
+
+- **A stale saved model.** `get_bundle` prefers `model/model.pkl` to refitting, so a pickle
+  from last month will serve confident forecasts against this month's prices. The fitted
+  window is recorded in the bundle, printed by `describe_bundle` and returned by `/health`.
+  **Check it before trusting a number.** Re-run the pipeline, or call
+  `sv.get_bundle(prices, refit=True)`, to refresh.
+- **The per-fund bias cannot be modelled away.** Stage 12 established that it is regime
+  drift rather than misspecification: in-sample per-fund bias is zero by construction, and
+  `abs_drift_rel` is already `abs_drift` interacted with the fund. Do not try to fix it with
+  interactions; the design matrix is singular and the attempt has been made.
+- **This is a development server.** `app.run` is single-threaded and not hardened. It is
+  fine for a demonstration on one machine and is not what should face a network.
+- **No authentication.** Anyone who can reach the port can call every route.
+
+### Using the deliverables
+
+| Artifact | Reader | How to use it |
+|---|---|---|
+| `reports/final_report.md` | firm principal | Read it. It carries the caveats needed to decide whether to trust the model |
+| `reports/drift_monitor_current.csv` | Dana | Open in Excel. One row per fund, a band, and an `action` column. No model vocabulary |
+| `GET /monitor.csv` | Dana | The same table without waiting for anyone to re-run a notebook |
+| `reports/decision_log.json` | reviewer or successor | Six decisions with the alternative rejected and the risk taken |
+| `docs/*.md` | analyst | One per stage, with the evidence behind each choice |
+| `model/model.pkl` | another program | `sv.load_bundle()`. Carries residuals and bias offsets, not just coefficients |
+
+### Suggested next steps
+
+1. **Lengthen the data window** before touching the model. It is worth roughly three times
+   more than any specification change available, and it is the only fix for the intervals
+   being floors rather than bounds. A 21-day bootstrap block becomes usable near 200 test
+   dates, about five years.
+2. **Decide the threshold level.** `/run_full_analysis/<amber>/<red>` makes the question
+   cheap to explore. The unit question is closed; the level is not.
+3. **Schedule the pipeline** so the monitor refreshes without anyone opening Jupyter, and
+   alert if `close_was_filled` stops being constant.
+4. **Put the API behind something real** before it faces a network: a production server,
+   and authentication.
