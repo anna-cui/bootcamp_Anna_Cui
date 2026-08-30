@@ -14,3 +14,8 @@ __pycache__/
 
 # OS
 .DS_Store
+
+# Runtime logs written by the Stage 13 Flask apps. Regenerated on every run, and
+# the notebooks already print their contents as evidence.
+server.log
+api.log
