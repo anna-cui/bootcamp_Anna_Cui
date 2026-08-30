@@ -19,3 +19,7 @@ __pycache__/
 # the notebooks already print their contents as evidence.
 server.log
 api.log
+
+# Stage 15 run artifacts. Regenerated on every run; the pipeline prints them as evidence.
+logs/
+**/data/processed/scratch/

@@ -522,3 +522,38 @@ read as grey to some viewers. The green was also only marginally separable from 
 under protanopia. The current values move the green toward teal, which is what fixes that
 pair, and pass all five checks. The committed Stage 12 and 13 images predate this and still
 use the old palette; regenerating them is a re-run away.
+
+## Running one pipeline task from the command line
+
+Built in Stage 15. The full task list, DAG, idempotency table and retry policy are in
+`docs/orchestration_plan.md`; the diagram is `reports/images/pipeline_dag.png`.
+
+`src/run_step.py` is the **score** task lifted out of the notebook: it loads the newest
+cleaned prices, loads or fits the model, and writes the monitor table.
+
+```bash
+cd project
+python src/run_step.py --step score                    # the scheduled invocation
+python src/run_step.py --step score --refit            # refit and overwrite model/model.pkl
+python src/run_step.py --step score --amber 2 --red 4 \
+       --reports-dir data/processed/scratch \
+       --proc-dir    data/processed/scratch            # explore a threshold without publishing
+python src/run_step.py --help                          # every flag
+```
+
+It writes `reports/drift_monitor_current.csv` (what Dana opens) and
+`data/processed/monitor_<stamp>.csv` (the checkpoint), logs to stdout and
+`logs/run_step.log`, and exits **0** on success, **1** if the task failed, **2** if it was
+called wrongly, so a scheduler can tell paging someone from fixing the crontab.
+
+**Use `--reports-dir` and `--proc-dir` for any exploratory run.** Pointed at the defaults,
+`--amber 2` would overwrite the published CSV with a non-default threshold and nothing on
+the file's face would say so.
+
+Scheduled monthly, matching the retraining cadence in `docs/monitoring_plan.md`:
+
+```
+0 7 1 * *  cd ~/NYU/Bootcamp/Bootcamp\ 4/bootcamp_Anna_Cui/project && \
+           ~/miniforge3/envs/bootcamp_env/bin/python src/run_step.py --step score \
+           >> logs/cron.log 2>&1
+```
